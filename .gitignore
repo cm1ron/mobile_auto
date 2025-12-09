@@ -1,0 +1,11 @@
+node_modules/
+failures/
+*.log
+*.xml
+.DS_Store
+Thumbs.db
+window_dump.xml
+current_dump.xml
+current_screen_dump.xml
+screenshot.png
+
