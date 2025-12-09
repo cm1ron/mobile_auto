@@ -1,0 +1,24 @@
+{
+  "name": "mobile_automation",
+  "version": "1.0.0",
+  "description": "Mobile Automation Scripts (AOS/iOS)",
+  "main": "index.js",
+  "scripts": {
+    "aos:all": "node AOS/00-install-app.js && node AOS/01-app-launch.js && node AOS/02-1-guest-login.js && node AOS/03-popup.js",
+    "aos:install": "node AOS/00-install-app.js",
+    "aos:launch": "node AOS/01-app-launch.js",
+    "aos:login:guest": "node AOS/02-1-guest-login.js",
+    "aos:login:google": "node AOS/02-2-google-login.js",
+    "aos:popup": "node AOS/03-popup.js",
+    "analyze": "node AOS/analyze-ui.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "automation",
+    "adb",
+    "android",
+    "ios"
+  ],
+  "author": "",
+  "license": "ISC"
+}
