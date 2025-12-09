@@ -1,6 +1,6 @@
 {
   "name": "mobile_automation",
-  "version": "1.0.0",
+  "version": "1.26.0",
   "description": "Mobile Automation Scripts (AOS/iOS)",
   "main": "index.js",
   "scripts": {
