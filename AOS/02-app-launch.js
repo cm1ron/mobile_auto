@@ -5,7 +5,7 @@ async function main() {
   const mobile = new MobileHelper();
   
   try {
-    mobile.log('🚀 [Step 1] Overdare 앱 실행 및 QA 진입');
+    mobile.log('🚀 [Step 2] Overdare 앱 실행 및 QA 진입');
 
     // 1. 화면 켜기
     mobile.log('📱 화면 켜는 중...');
@@ -31,40 +31,23 @@ async function main() {
     mobile.adb('shell input keyevent KEYCODE_HOME');
     await new Promise(r => setTimeout(r, 2000));
 
-    // 3. 앱 서랍 열기
-    mobile.log('📂 앱 서랍 열기 (위로 스와이프)...');
-    mobile.adb('shell input swipe 720 2200 720 500 500');
-    await new Promise(r => setTimeout(r, 2000));
-
-    // 4. Overdare 앱 찾기 및 실행
-    const targetAppName = 'OVERDARE';
+    // 3. Overdare 앱 직접 실행 (패키지명 기반)
+    // 앱 서랍에서 찾을 경우 동명의 다른 앱이 실행될 수 있으므로, 패키지명을 명시하여 실행
+    const targetPackage = 'com.overdare.overdare.dev';
+    mobile.log(`🚀 '${targetPackage}' 앱 직접 실행 (Monkey Tool)`);
     
-    // 스마트 탐색 (양방향 스와이프) - 대소문자 처리는 findElement 내부에서 처리됨 (exactMatch 기본값 false라면)
-    // 하지만 findAppInDrawer는 findElement를 사용하므로, 
-    // 우선 'OVERDARE'로 찾아보고 없으면 'Overdare'로 다시 시도하는 로직이 필요할 수 있음.
-    
-    let found = await mobile.findAppInDrawer(targetAppName);
-    if (!found) {
-        // 대소문자 바꿔서 재시도
-        found = await mobile.findAppInDrawer('Overdare');
+    try {
+        mobile.adb(`shell monkey -p ${targetPackage} -c android.intent.category.LAUNCHER 1`);
+        mobile.log('🎉 앱 실행 명령 전달 완료! 로딩 대기...');
+    } catch (e) {
+        throw new Error(`앱 실행 실패: ${e.message}`);
     }
 
-    if (found) {
-        const element = mobile.findElement(targetAppName) || mobile.findElement('Overdare');
-        mobile.log(`✅ 앱 발견! 좌표: (${element.x}, ${element.y})`);
-        mobile.log('👆 앱 실행 (탭)');
-        mobile.adb(`shell input tap ${element.x} ${element.y}`);
-    } else {
-        throw new Error(`'${targetAppName}' 앱을 찾지 못했습니다.`);
-    }
-
-    mobile.log('🎉 앱 실행 완료! 로딩 대기...');
-
-    // 5. QA 선택 및 GO (구 02번 내용)
+    // 4. QA 선택 및 GO (구 02번 내용)
     mobile.log('⏳ 앱 로딩 대기 중... (10초)');
     await new Promise(r => setTimeout(r, 10000));
 
-    // 5-1. Search 창 찾아서 'qa' 검색
+    // 4-1. Search 창 찾아서 'qa' 검색
     mobile.log('🔍 QA 환경 검색을 위해 Search 창 찾는 중...');
     const searchInput = await mobile.findAndClick('Search', 5); // Search 텍스트 찾기
     
@@ -77,7 +60,7 @@ async function main() {
         mobile.log('⚠️ Search 창을 찾지 못했습니다. 바로 QA 찾기를 시도합니다.', 'WARN');
     }
 
-    // 5-2. QA 선택
+    // 4-2. QA 선택
     // 검색 결과에서 qa 선택
     mobile.log('🔍 검색 결과 목록에서 "qa" 찾는 중... (검색창 텍스트 제외)');
     
@@ -129,7 +112,7 @@ async function main() {
     }
 
   } catch (error) {
-    mobile.error(`Step 1 실패: ${error.message}`, 'step01_launch');
+    mobile.error(`Step 2 실패: ${error.message}`, 'step02_launch');
     process.exit(1);
   }
 }

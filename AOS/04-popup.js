@@ -4,7 +4,7 @@ async function main() {
     const mobile = new MobileHelper();
     
     try {
-        mobile.log('🚀 [Step 3] 홈 화면 팝업 및 튜토리얼 처리 시작');
+        mobile.log('🚀 [Step 4] 홈 화면 팝업 및 튜토리얼 처리 시작');
 
         // 처리할 키워드 리스트 (우선순위 순)
         // 1. 권한 허용 (시스템 팝업)
@@ -13,9 +13,10 @@ async function main() {
         const keywords = [
             '허용', 'Allow', 
             'OK', '확인', 'Confirm', 'Yes', 
-            'Accept', 'Agree', '동의',
+            'Accept', 'Agree', '동의', 'Agree all', 'Agree and start',
             '닫기', 'Close', 'Close all', '오늘 하루 보지 않기',
-            'Check it out', 'Check out now', 'Check out', '바로가기'
+            'Check it out', 'Check out now', 'Check out', '바로가기',
+            'Sounds good', 'Terms of Service', 'Privacy Policy'
         ];
 
         // 최대 2분 동안 반복해서 팝업 처리
@@ -64,7 +65,7 @@ async function main() {
                             const isPermissionBtn = resourceId.includes('permission_allow') || resourceId.includes('button1');
                             
                             // 텍스트 자체가 버튼 역할을 하는 경우 (clickable=false여도 클릭 시도)
-                            const isTextButton = ['Check it out', 'Check it now', 'Check out', '바로가기'].some(k => text.includes(k));
+                            const isTextButton = ['Check it out', 'Check it now', 'Check out', '바로가기', 'Sounds good', 'Agree', 'Accept', 'Terms of Service', 'Privacy Policy'].some(k => text.includes(k));
 
                             if (clickable || isButton || isPermissionBtn || isTextButton) {
                                 const boundsMatch = /bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/.exec(attrs);
@@ -142,7 +143,7 @@ async function main() {
         // 예: "Skip" 버튼이 있다면 클릭
 
     } catch (e) {
-        mobile.error(`Step 3 실패: ${e.message}`, 'step03_popup');
+        mobile.error(`Step 4 실패: ${e.message}`, 'step04_popup');
         throw e;
     }
 }

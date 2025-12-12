@@ -4,12 +4,12 @@
   "description": "Mobile Automation Scripts (AOS/iOS)",
   "main": "index.js",
   "scripts": {
-    "aos:all": "node AOS/00-install-app.js && node AOS/01-app-launch.js && node AOS/02-1-guest-login.js && node AOS/03-popup.js",
-    "aos:install": "node AOS/00-install-app.js",
-    "aos:launch": "node AOS/01-app-launch.js",
-    "aos:login:guest": "node AOS/02-1-guest-login.js",
-    "aos:login:google": "node AOS/02-2-google-login.js",
-    "aos:popup": "node AOS/03-popup.js",
+    "aos:all": "node AOS/run-all.js",
+    "aos:delete": "node AOS/00-delete-app.js",
+    "aos:install": "node AOS/01-install-app.js",
+    "aos:launch": "node AOS/02-app-launch.js",
+    "aos:login": "node AOS/03-login.js",
+    "aos:popup": "node AOS/04-popup.js",
     "analyze": "node AOS/analyze-ui.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -20,5 +20,9 @@
     "ios"
   ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "@playwright/test": "^1.57.0",
+    "playwright": "^1.57.0"
+  }
 }
