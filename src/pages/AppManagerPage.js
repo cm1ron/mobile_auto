@@ -350,9 +350,80 @@ class AppManagerPage extends BasePage {
     }
 
     async _findAppInDrawer(appName) {
-        // Simplified drawer search (only current page check for now as per original code structure logic)
-        // Ideally should implement swipe pagination from MobileHelper here
-        return this.driver.findElement(appName); 
+        this.driver.log(`🔍 앱 서랍에서 '${appName}' 탐색 시작...`);
+        
+        // 1. 현재 화면에서 찾기
+        if (this.driver.findElement(appName)) {
+            this.driver.log(`✅ '${appName}' 발견 (현재 화면)`);
+            return true;
+        }
+
+        const maxPages = 5;
+        const fs = require('fs');
+        const path = require('path');
+        const dumpPath = '/sdcard/window_dump.xml';
+        const localPath = path.join(this.driver.sessionDir, 'temp_drawer_dump.xml');
+
+        // 헬퍼: 현재 화면 XML 해시(간이) 구하기 - 화면 변화 감지용
+        const getScreenHash = () => {
+            try {
+                this.driver.adb(`shell rm ${dumpPath}`);
+            } catch (e) {}
+            try {
+                this.driver.adb(`shell uiautomator dump ${dumpPath}`);
+                this.driver.adb(`pull ${dumpPath} "${localPath}"`);
+                
+                if (fs.existsSync(localPath)) {
+                    return fs.readFileSync(localPath, 'utf-8').length; 
+                }
+            } catch (e) {}
+            return 0;
+        };
+
+        // 2. 오른쪽으로 이동하며 찾기 (->)
+        this.driver.log('➡️ 다음 페이지(오른쪽)로 탐색 시도...');
+        let prevHash = getScreenHash();
+        
+        for (let i = 0; i < maxPages; i++) {
+            this.driver.adb('shell input swipe 900 1200 100 1200 300'); // Next Page (오른쪽 스와이프)
+            await this.sleep(2000);
+            
+            if (this.driver.findElement(appName)) {
+                this.driver.log(`✅ '${appName}' 발견 (오른쪽 페이지 ${i + 1})`);
+                return true;
+            }
+            
+            const currHash = getScreenHash();
+            if (Math.abs(currHash - prevHash) < 50) { 
+                this.driver.log('🛑 더 이상 오른쪽 페이지가 없습니다.');
+                break;
+            }
+            prevHash = currHash;
+        }
+
+        // 3. 왼쪽으로 이동하며 찾기 (<-)
+        this.driver.log('⬅️ 이전 페이지(왼쪽)로 탐색 시도...');
+        prevHash = getScreenHash();
+
+        for (let i = 0; i < maxPages * 2; i++) { 
+            this.driver.adb('shell input swipe 100 1200 900 1200 300'); // Prev Page (왼쪽 스와이프)
+            await this.sleep(2000);
+
+            if (this.driver.findElement(appName)) {
+                this.driver.log(`✅ '${appName}' 발견 (왼쪽 페이지 ${i + 1})`);
+                return true;
+            }
+
+            const currHash = getScreenHash();
+            if (Math.abs(currHash - prevHash) < 50) {
+                this.driver.log('🛑 더 이상 왼쪽 페이지가 없습니다.');
+                break;
+            }
+            prevHash = currHash;
+        }
+
+        this.driver.log(`❌ '${appName}' 앱을 찾을 수 없습니다.`);
+        return false;
     }
 
     async _handleInstallPopup() {

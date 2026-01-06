@@ -23,6 +23,17 @@ class LoginPage extends BasePage {
             return true;
         }
 
+        // 2-1. Check for Marketplace/Game elements (Additional check)
+        // If we see "MARKETPLACE", "Play Now", or "Building", we are logged in.
+        const hasGameElement = this.driver.findElement('MARKETPLACE', true) || 
+                               this.driver.findElement('Play Now', false) ||
+                               this.driver.findElement('Building', false);
+
+        if (hasGameElement) {
+            this.driver.log('✅ Game/Marketplace elements found. Already logged in.');
+            return true;
+        }
+
         // 3. [Critical Fix] Check for Main Popup elements
         // If a popup is blocking the screen, it means we are already logged in.
         // Keywords from screenshot: "Not now", "Get your Gacha Ticket", "Season Pass"

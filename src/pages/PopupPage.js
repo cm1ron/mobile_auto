@@ -5,16 +5,19 @@ class PopupPage extends BasePage {
     async handleMainPopups() {
         this.driver.log('🚀 [Step 4] 메인 팝업 및 권한 처리 시작');
         
-        // Flag to prevent infinite clicking on "Play now" (since it remains on screen as a button)
+        // Flags to prevent infinite clicking
         let playNowHandled = false;
+        let permissionHandled = false;
+        let gachaHandled = false;
 
         // Loop to handle multiple stacked popups
         for (let i = 0; i < 5; i++) {
             let handled = false;
 
-            // 1. Permission Popup (Allow/허용)
-            if (await this._handlePermissionPopup()) {
+            // 1. Permission Popup (Allow/허용) - 한 번만 처리
+            if (!permissionHandled && await this._handlePermissionPopup()) {
                 handled = true;
+                permissionHandled = true; // 다음 검사에서 제외
             }
             
             // 2. Play Now Dimmed Highlight (Handle ONLY ONCE)
@@ -23,9 +26,10 @@ class PopupPage extends BasePage {
                 playNowHandled = true; // Mark as done so we don't click it again
             }
 
-            // 3. Gacha Ticket Popup
-            else if (await this._handleGachaPopup()) {
+            // 3. Gacha Ticket Popup - 한 번만 처리
+            else if (!gachaHandled && await this._handleGachaPopup()) {
                 handled = true;
+                gachaHandled = true; // 다음 검사에서 제외
             }
 
             // 4. "Don't show again" Checkbox
@@ -44,7 +48,7 @@ class PopupPage extends BasePage {
                 break;
             }
             
-            await this.sleep(2000); // Wait for next popup animation (Important!)
+            await this.sleep(10000); // Wait for next popup animation (10초)
         }
     }
 
@@ -75,10 +79,10 @@ class PopupPage extends BasePage {
     async _handleGachaPopup() {
         // Condition: "Get your Gacha Ticket" button
         if (await this.driver.findAndClick('Get your Gacha Ticket', 2, false)) {
-            this.driver.log('👆 가차 티켓 받기 클릭 -> 애니메이션 대기 (6초)');
+            this.driver.log('👆 가차 티켓 받기 클릭 -> 애니메이션 대기 (10초)');
             
             // Wait for animation
-            await this.sleep(6000); 
+            await this.sleep(10000); 
 
             // Simply press Back to close the result popup
             this.driver.log('🔙 애니메이션 종료. 뒤로가기(Back) 키로 팝업 닫기');
@@ -106,7 +110,7 @@ class PopupPage extends BasePage {
 
     async _closePopup() {
         const closeKeywords = [
-            'Close', '닫기', 'X', 
+            'Close', '닫기', 
             'Not now', '나중에', 
             'Skip', '건너뛰기', 'Cancel', '취소'
         ];
