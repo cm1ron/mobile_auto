@@ -40,17 +40,17 @@ async function main() {
       mobile.log(`✅ '${packageName}' 선택 완료`);
       await new Promise(r => setTimeout(r, 3000));
       
-      // '10087' 검색 (사용자 요청: 이번만 10087)
+      // 'master' 검색 (사용자 요청: 최신 마스터 빌드)
       const searchInput = await mobile.findAndClick('출시 버전 및 출시 노트 검색', 5);
       
       if (searchInput) {
-          mobile.log('⌨️ "10087" 검색어 입력 (기존 텍스트 삭제 후)');
+          mobile.log('⌨️ "master" 검색어 입력 (기존 텍스트 삭제 후)');
           // 기존 텍스트 삭제 로직 추가 (커서 끝으로 이동 후 삭제)
           mobile.adb('shell input keyevent 123'); // KEYCODE_MOVE_END
           for(let i=0; i<20; i++) mobile.adb('shell input keyevent 67'); // DEL
           
           await new Promise(r => setTimeout(r, 500));
-          mobile.adb('shell input text "10087"');
+          mobile.adb('shell input text "master"');
           mobile.adb('shell input keyevent KEYCODE_ENTER');
           // 검색 결과 로딩 대기 시간 증가 (3초 -> 10초)
           mobile.log('⏳ 검색 결과 로딩 대기 (10초)...');
@@ -59,14 +59,14 @@ async function main() {
           mobile.log('⚠️ 검색창을 찾지 못했습니다. 그냥 진행합니다.', 'WARN');
       }
 
-      mobile.log('🔍 최신 10087 빌드 찾는 중...');
+      mobile.log('🔍 최신 master 빌드 찾는 중...');
       
       const fs = require('fs');
       let targetBuild = null;
       let targetBtn = null;
       let scrollAttempts = 0;
       const maxScrolls = 5;
-      const TARGET_KEYWORD = '10087';
+      const TARGET_KEYWORD = 'master';
 
       while (!targetBuild && scrollAttempts < maxScrolls) {
           try {
@@ -107,7 +107,7 @@ async function main() {
               const unrealVerText = match[1];
               const uY1 = parseInt(match[3]);
               
-              // 1. UnrealVersion 검증 (10087 또는 master)
+              // 1. UnrealVersion 검증 (master 또는 키워드 포함)
               if (!unrealVerText.includes('master') && !unrealVerText.includes(TARGET_KEYWORD)) continue;
 
               mobile.log(`   ✨ 후보 버전(Unreal) 찾음: ${unrealVerText}`);

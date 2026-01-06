@@ -1,23 +1,19 @@
 {
   "name": "mobile_automation",
-  "version": "1.26.0",
-  "description": "Mobile Automation Scripts (AOS/iOS)",
+  "version": "2.0.0",
+  "description": "Mobile Automation Scripts (AOS/iOS) - Structured POM Version",
   "main": "index.js",
   "scripts": {
-    "aos:all": "node AOS/run-all.js",
-    "aos:delete": "node AOS/00-delete-app.js",
-    "aos:install": "node AOS/01-install-app.js",
-    "aos:launch": "node AOS/02-app-launch.js",
-    "aos:login": "node AOS/03-login.js",
-    "aos:popup": "node AOS/04-popup.js",
-    "analyze": "node AOS/analyze-ui.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "setup": "node tests/setup_scenario.js",
+    "login": "node tests/login_scenario.js",
+    "market": "node tests/marketplace_scenario.js"
   },
   "keywords": [
     "automation",
     "adb",
     "android",
-    "ios"
+    "ios",
+    "pom"
   ],
   "author": "",
   "license": "ISC",
