@@ -69,9 +69,9 @@ class AdbDriver {
 
   // --- Element Finding Logic ---
 
-  findElement(text, exactMatch = true) {
+  refreshDump() {
     const dumpPath = '/sdcard/window_dump.xml';
-    const localPath = path.join(this.sessionDir, 'temp_dump.xml'); // Use session dir for temp files to avoid clutter
+    const localPath = path.join(this.sessionDir, 'temp_dump.xml');
 
     try { this.adb(`shell rm ${dumpPath}`); } catch (e) {}
 
@@ -89,15 +89,27 @@ class AdbDriver {
         }
     }
 
-    if (!dumpSuccess) return null;
+    if (!dumpSuccess) return false;
 
-    try { this.adb(`pull ${dumpPath} "${localPath}"`); } catch (e) { return null; }
+    try { this.adb(`pull ${dumpPath} "${localPath}"`); } catch (e) { return false; }
+    
+    return fs.existsSync(localPath);
+  }
 
-    if (!fs.existsSync(localPath)) return null;
+  findElement(text, exactMatch = true) {
+    if (!this.refreshDump()) return null;
+
+    const localPath = path.join(this.sessionDir, 'temp_dump.xml');
     const xmlContent = fs.readFileSync(localPath, 'utf-8');
 
-    // System Popup Check could go here or be handled by specific Page Objects
-    // For simplicity, we keep it simple here.
+    // [Global] System Popup Check (One UI / Software Update)
+    // 팝업 감지 시 뒤로가기(Back)를 눌러 닫고 재시도
+    if (this._isSystemPopup(xmlContent)) {
+        this.log('🛡️ 시스템 업데이트(One UI) 팝업 감지! 뒤로가기로 닫습니다...', 'WARN');
+        this.adb('shell input keyevent 4'); // Back
+        this.sleep(2000);
+        return this.findElement(text, exactMatch); // 재귀 호출로 다시 탐색
+    }
 
     let regex;
     const escapedText = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Escape regex chars
@@ -161,7 +173,25 @@ class AdbDriver {
   sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
+
+  // 시스템 팝업(업데이트 등) 감지 헬퍼
+  _isSystemPopup(xmlContent) {
+      // 1. Software Update (English/Korean)
+      if (xmlContent.includes('text="Software update"') || xmlContent.includes('text="소프트웨어 업데이트"')) {
+          return true;
+      }
+      
+      // 2. One UI Update context
+      // One UI 텍스트와 함께 업데이트/설치/다운로드 관련 문구가 있을 때
+      if (xmlContent.includes('text="One UI"')) {
+          const updateKeywords = ['Update', '업데이트', 'Install', '설치', 'Download', '다운로드'];
+          if (updateKeywords.some(k => xmlContent.includes(`text="${k}"`))) {
+              return true;
+          }
+      }
+      
+      return false;
+  }
 }
 
 module.exports = AdbDriver;
-

@@ -19,15 +19,22 @@ class MarketplacePage extends BasePage {
     }
 
     // 1차 분류(카테고리) 전체 순회 및 아이템 전수 조사
-    async traverseAllCategories() {
+    async traverseAllCategories(targetCategory = null) {
         this.driver.log('🚀 [Category] 모든 카테고리 탭 순회 및 아이템 전수 조사 시작');
+        if (targetCategory) {
+            this.driver.log(`🎯 Target Category: ${targetCategory}`);
+        }
 
         // [Step 0] 진입하자마자 현재(Default) 탭 아이템 우선 전수 조사
-        this.driver.log('🚀 [Default Tab] 기본 탭 아이템 전수 조사 먼저 수행');
-        await this.equipAllItemsInCurrentTab();
+        // 타겟 카테고리가 없거나, 타겟이 현재 탭인 경우 수행 (하지만 현재 탭 이름을 알 수 없으므로, 타겟이 있으면 건너뛰는 게 안전할 수도 있음)
+        // 여기서는 타겟이 지정되면 Default 탭 검사는 건너뛰고 바로 해당 탭을 찾아가도록 수정 (원하는 탭만 보기 위해)
+        if (!targetCategory) {
+            this.driver.log('🚀 [Default Tab] 기본 탭 아이템 전수 조사 먼저 수행');
+            await this.equipAllItemsInCurrentTab();
+        }
         
         // 1. 탭 Y라인(tabY) 자동 감지
-        this.driver.findElement('dummy_refresh'); // 덤프 갱신
+        this.driver.refreshDump(); // 덤프 갱신
         let xmlContent = this.driver.getDumpContent();
         let tabY = 1402; // 기본값
 
@@ -67,7 +74,7 @@ class MarketplacePage extends BasePage {
 
         while (scrollCount < maxScrolls) {
             // 탭 목록 스캔
-            this.driver.findElement('dummy_refresh');
+            this.driver.refreshDump();
             const xmlContent = this.driver.getDumpContent();
             
             const visibleNodes = [];
@@ -95,7 +102,11 @@ class MarketplacePage extends BasePage {
             visibleNodes.sort((a, b) => a.left - b.left);
 
             // 안 누른 탭 클릭 -> 아이템 전수 조사
-            const targetNode = visibleNodes.find(node => !clickedCategories.has(node.text));
+            const targetNode = visibleNodes.find(node => {
+                if (clickedCategories.has(node.text)) return false;
+                if (targetCategory && node.text !== targetCategory) return false;
+                return true;
+            });
 
             if (targetNode) {
                 this.driver.log(`\n============== [Category: ${targetNode.text}] ==============`);
@@ -145,7 +156,7 @@ class MarketplacePage extends BasePage {
         
         this.driver.log(`   🔎 서브 카테고리 스캔 범위: Y=${subTabMinY}~${subTabMaxY}`);
 
-        this.driver.findElement('dummy_refresh');
+        this.driver.refreshDump();
         const xmlContent = this.driver.getDumpContent();
         
         const subTabs = [];
@@ -176,7 +187,10 @@ class MarketplacePage extends BasePage {
 
         if (subTabs.length > 0) {
             this.driver.log(`   ✨ 발견된 서브 탭(텍스트): ${subTabs.map(t => t.text).join(', ')}`);
-            for (const subTab of subTabs) {
+            
+            // [Modified] 첫 번째 서브 탭은 이미 진입 시(Line 140) 검수했으므로 건너뜀
+            for (let i = 1; i < subTabs.length; i++) {
+                const subTab = subTabs[i];
                 this.driver.log(`   👉 2차 카테고리 클릭: '${subTab.text}'`);
                 this.driver.adb(`shell input tap ${subTab.x} ${subTab.y}`);
                 await this.sleep(2000); 
@@ -190,14 +204,16 @@ class MarketplacePage extends BasePage {
                 
                 const blindY = parentTabY + 120;
                 const blindPoints = [
-                    { name: 'Left Tab (MOTO)', x: 180 },   // 270 -> 180
-                    { name: 'Right Tab (MECHA)', x: 600 }  // 810 -> 600
+                    { name: 'Left Tab (MOTO)', x: 270 },
+                    { name: 'Right Tab (MECHA)', x: 810 }
                 ];
 
                 // [New] 화면 변화 감지를 위한 이전 아이템 ID 저장
                 let lastFirstItemId = await this.getFirstItemId();
 
-                for (const point of blindPoints) {
+                // [Modified] 첫 번째 탭(Left)은 이미 검수했으므로 두 번째부터 순회
+                for (let i = 1; i < blindPoints.length; i++) {
+                    const point = blindPoints[i];
                     this.driver.log(`   👉 [Blind] 서브 탭 클릭 시도: ${point.name} (${point.x}, ${blindY})`);
                     this.driver.adb(`shell input tap ${point.x} ${blindY}`);
                     await this.sleep(2000);
@@ -225,7 +241,7 @@ class MarketplacePage extends BasePage {
 
     // 현재 화면의 첫 번째 아이템 ID(thumb_id)를 반환하는 헬퍼
     async getFirstItemId() {
-        this.driver.findElement('dummy_refresh');
+        this.driver.refreshDump();
         const xmlContent = this.driver.getDumpContent();
         const match = /content-desc="thumb_id:([^"]+)"/.exec(xmlContent);
         return match ? match[1] : null;
@@ -241,7 +257,7 @@ class MarketplacePage extends BasePage {
         let noNewItemsCount = 0;
 
         while (scrollAttempts < maxPageScrolls) {
-            this.driver.findElement('dummy_refresh');
+            this.driver.refreshDump();
             const xmlContent = this.driver.getDumpContent();
             
             const items = [];
