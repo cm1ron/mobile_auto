@@ -52,6 +52,36 @@ class PopupPage extends BasePage {
         }
     }
 
+    /**
+     * [New] 모든 팝업 처리 후 현재 홈 화면인지 확인하고, 아니면 홈으로 이동
+     */
+    async ensureHomeState() {
+        this.driver.log('🏠 [PopupPage] 팝업 처리 후 홈 화면 상태 확인...');
+        
+        // 1. Home 탭이 보이는지 확인 (가장 확실한 홈 화면 증거)
+        const homeTab = await this.driver.findElement('Home');
+        
+        if (homeTab) {
+            this.driver.log('✅ 현재 홈 화면(Home 탭 보임)입니다. 상태 양호.');
+            return true;
+        } else {
+            this.driver.log('⚠️ 홈 탭이 안 보입니다. 팝업이 남아있거나 다른 페이지입니다. 홈 이동 시도...', 'WARN');
+            
+            // 시도 1: 뒤로가기 한 번 하고 다시 확인
+            this.driver.adb('shell input keyevent 4');
+            await this.sleep(2000);
+            
+            const retryHome = await this.driver.findAndClick('Home', 3);
+            if (retryHome) {
+                this.driver.log('✅ 뒤로가기 후 홈 탭 클릭 성공.');
+                return true;
+            }
+            
+            this.driver.log('❌ 홈으로 복귀하지 못했습니다.', 'ERROR');
+            return false;
+        }
+    }
+
     // --- Specific Popup Handlers ---
 
     async _handlePermissionPopup() {

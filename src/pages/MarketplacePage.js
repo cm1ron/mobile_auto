@@ -330,6 +330,40 @@ class MarketplacePage extends BasePage {
         
         this.driver.log(`   ✅ 카테고리 완료 (총 ${visitedItems.size}개 아이템 테스트)`);
     }
+
+    /**
+     * [New] 마켓플레이스 퇴장 및 홈 복귀
+     * 1. 뒤로가기 (상단 뒤로가기 버튼 또는 디바이스 Back 키)
+     * 2. [팝업 처리] "Please save your changes" -> "OK, leave" 클릭
+     * 3. 홈 탭 클릭
+     */
+    async exitMarketplace() {
+        this.driver.log('🚪 [Marketplace] 마켓플레이스 퇴장 및 홈 복귀 시도...');
+        
+        // 1. 뒤로가기 (디바이스 Back 키 1회)
+        this.driver.adb('shell input keyevent 4'); 
+        await this.sleep(2000);
+
+        // 2. [팝업 감지] 저장 안 함 경고 팝업 ("Please save your changes")
+        // "OK, leave" 버튼이 있으면 클릭
+        const leaveBtn = await this.driver.findAndClick('OK, leave', 3);
+        
+        if (leaveBtn) {
+             this.driver.log('✅ 저장 경고 팝업 감지 -> "OK, leave" 클릭 완료');
+             await this.sleep(2000);
+        } else {
+             // 팝업이 안 떴으면 그냥 바로 나가지거나, 이미 홈이거나 등등
+             this.driver.log('ℹ️ 저장 경고 팝업이 없거나 이미 닫혔습니다.');
+        }
+
+        // 3. 홈 탭 클릭 (확실하게 복귀)
+        const homeClicked = await this.driver.findAndClick('Home', 5, false);
+        if (homeClicked) {
+            this.driver.log('✅ 홈 탭 클릭 완료. 홈 화면 복귀 성공.');
+        } else {
+            this.driver.log('⚠️ 홈 탭을 찾지 못했습니다. (이미 홈이거나 다른 곳일 수 있음)', 'WARN');
+        }
+    }
 }
 
 module.exports = MarketplacePage;

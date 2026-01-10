@@ -11,6 +11,10 @@ const MarketplacePage = require('../src/pages/MarketplacePage');
     try {
         await marketplace.enterMarketplace();
         await marketplace.traverseAllCategories(targetCategory);
+        
+        // [New] 테스트 완료 후 홈으로 복귀
+        await marketplace.exitMarketplace();
+        
     } catch (error) {
         console.error('Test Failed:', error);
     }
