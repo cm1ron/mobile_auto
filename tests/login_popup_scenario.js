@@ -15,7 +15,8 @@ async function run() {
             driver.log('✅ Already logged in. Proceeding to popup handling.');
         } else {
             // 2. Decide login method (Command line args: node login_scenario.js <account>)
-            const args = process.argv.slice(2);
+            // android=... 인자 제외
+            const args = process.argv.slice(2).filter(arg => !arg.startsWith('android='));
             const specificAccount = args[0];
 
             if (specificAccount) {

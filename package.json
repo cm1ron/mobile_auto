@@ -6,7 +6,7 @@
   "scripts": {
     "setup": "node tests/setup_scenario.js",
     "login": "node tests/login_scenario.js",
-    "market": "node tests/marketplace_scenario.js"
+    "avatar": "node tests/marketplace_scenario.js"
   },
   "keywords": [
     "automation",

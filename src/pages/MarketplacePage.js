@@ -142,6 +142,161 @@ class MarketplacePage extends BasePage {
         }
 
         this.driver.log(`✅ 모든 카테고리 순회 완료. (총 ${clickedCategories.size}개)`);
+
+    // [New] Customize 탭으로 이동하여 추가 검수 (타겟 카테고리가 없을 때만)
+    // if (!targetCategory) {
+    //     await this.traverseCustomizeTab();
+    // }
+    // -> 이 로직은 이제 marketplace_scenario.js에서 제어하므로 삭제하거나 주석 처리
+    }
+
+    // [New] Customize 탭 진입 및 검수
+    async traverseCustomizeTab(targetCategory = null) {
+        this.driver.log('🚀 [Customize] Customize 탭 진입 및 검수 시작');
+        if (targetCategory) {
+            this.driver.log(`🎯 Target Customize Category: ${targetCategory}`);
+        }
+        
+        // 1. Customize 탭 클릭
+        const customizeTab = await this.driver.findAndClick('Customize', 5);
+        if (!customizeTab) {
+            this.driver.log('⚠️ Customize 탭을 찾을 수 없습니다. (건너뜀)', 'WARN');
+            return;
+        }
+        
+        await this.sleep(3000);
+        this.driver.log('✅ Customize 탭 진입 완료');
+
+        // [Step 0] 진입하자마자 현재(Default) 탭 아이템 우선 전수 조사 (타겟 없을 때만)
+        if (!targetCategory) {
+            this.driver.log('🚀 [Customize Default] 기본 탭 아이템 검수');
+            await this.equipAllItemsInCurrentTab();
+        }
+
+        // 2. Customize 탭 내부의 카테고리들도 동일하게 순회해야 함.
+        // 기존 traverseAllCategories 로직을 재사용하고 싶지만, 무한 루프 위험이 있음.
+        // 여기서는 간단하게 "Customize 내부의 현재 보이는 탭들"만 가볍게 순회하거나,
+        // 로직을 분리해서 호출해야 함. 
+        // 일단 Customize 탭 내에서도 동일하게 탭바가 존재하므로, 같은 로직(탭 찾기 -> 클릭 -> 아이템 검수)을 수행합니다.
+        
+        // 코드 재사용을 위해 내부 로직을 분리하는 게 좋겠지만, 
+        // 일단 Customize 탭 전용으로 간소화된 순회 로직을 구현합니다.
+
+        // 1. 탭 Y라인 감지 (Marketplace와 동일하다고 가정하거나 다시 감지)
+        this.driver.refreshDump();
+        let xmlContent = this.driver.getDumpContent();
+        let tabY = 1402; // 기본값
+
+        // Y좌표 1300~1550 사이 탭 찾기
+        const potentialTabs = [];
+        const tabRegex = /text="([^"]+)"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/g;
+        let match;
+        
+        while ((match = tabRegex.exec(xmlContent)) !== null) {
+            const tText = match[1];
+            const y1 = parseInt(match[3]);
+            const y2 = parseInt(match[5]);
+            const centerY = Math.floor((y1 + y2) / 2);
+
+            if (centerY > 1380 && centerY < 1550) {
+                 if (!['Filter', 'Sort', 'Search', 'Season Coin only', 'Charge BLUC', 'Save', '0', 'Marketplace', 'Customize'].includes(tText)) {
+                    if (/^\d{2}:?\d{2}$/.test(tText)) continue;
+                    potentialTabs.push(centerY);
+                 }
+            }
+        }
+
+        if (potentialTabs.length > 0) {
+            const sum = potentialTabs.reduce((a, b) => a + b, 0);
+            tabY = Math.floor(sum / potentialTabs.length);
+            this.driver.log(`ℹ️ [Customize] 카테고리 탭 Y라인 감지: ${tabY}`);
+        }
+
+        // Customize 탭의 카테고리 순회 (스크롤 없이 현재 보이는 것만 우선 수행 or 스크롤 포함)
+        // Marketplace와 구조가 비슷하다면 스크롤 로직도 비슷하게 적용
+        
+        const clickedCategories = new Set();
+        let scrollCount = 0;
+        const maxScrolls = 10;
+        let consecutiveEmptyScrolls = 0;
+
+        while (scrollCount < maxScrolls) {
+            this.driver.refreshDump();
+            const xmlContent = this.driver.getDumpContent();
+            
+            const visibleNodes = [];
+            const regex = /text="([^"]+)"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/g;
+            let match;
+
+            while ((match = regex.exec(xmlContent)) !== null) {
+                const text = match[1];
+                const y1 = parseInt(match[3]);
+                const y2 = parseInt(match[5]);
+                const centerY = Math.floor((y1 + y2) / 2);
+                
+                if (Math.abs(centerY - tabY) < 80) {
+                    if (['Filter', 'Sort', 'Search', 'Season Coin only', 'Charge BLUC', 'Save', '0', 'Marketplace', 'Customize'].includes(text)) continue;
+                    
+                    visibleNodes.push({
+                        text: text,
+                        x: Math.floor((parseInt(match[2]) + parseInt(match[4])) / 2),
+                        y: centerY,
+                        left: parseInt(match[2])
+                    });
+                }
+            }
+
+            visibleNodes.sort((a, b) => a.left - b.left);
+
+            // 타겟이 있으면 타겟만 찾고, 없으면 안 누른 것 찾기
+            const targetNode = visibleNodes.find(node => {
+                if (clickedCategories.has(node.text)) return false;
+                if (targetCategory && node.text !== targetCategory) return false;
+                return true;
+            });
+
+            if (targetNode) {
+                this.driver.log(`\n============== [Customize Category: ${targetNode.text}] ==============`);
+                this.driver.log(`👆 카테고리 클릭: '${targetNode.text}'`);
+                this.driver.adb(`shell input tap ${targetNode.x} ${targetNode.y}`);
+                clickedCategories.add(targetNode.text);
+                
+                await this.sleep(2500); 
+                
+                // Customize 탭도 서브 카테고리가 있을 수 있음 (예: Body -> Skin, Hair 등)
+                // 구조가 같다면 traverseSubCategories 재사용 가능
+                // Body, Head 등은 서브 카테고리가 있을 확률 높음.
+                // 일단 아이템 전수 조사 수행
+                await this.equipAllItemsInCurrentTab();
+
+                // 타겟이 있었다면 할 일 다 했으니 종료
+                if (targetCategory) {
+                    this.driver.log(`✅ 타겟 카테고리 '${targetCategory}' 검수 완료`);
+                    return;
+                }
+
+                consecutiveEmptyScrolls = 0;
+                continue; 
+            }
+
+            // 타겟이 있는데 못 찾았다면 스크롤
+            if (consecutiveEmptyScrolls >= 3) { 
+                this.driver.log('🛑 [Customize] 더 이상 새로운 탭 없음.');
+                break;
+            }
+
+            this.driver.log(`➡️ [Customize] 탭 스크롤...`);
+            this.driver.adb(`shell input swipe 900 ${tabY} 200 ${tabY} 800`); 
+            await this.sleep(2000);
+            scrollCount++;
+            consecutiveEmptyScrolls++;
+        }
+        
+        if (targetCategory && clickedCategories.size === 0) {
+             this.driver.log(`⚠️ 타겟 카테고리 '${targetCategory}'를 Customize 탭에서 찾지 못했습니다.`, 'WARN');
+        } else {
+             this.driver.log('✅ Customize 탭 검수 완료');
+        }
     }
 
     // 2차 카테고리(서브 탭) 순회

@@ -5,6 +5,15 @@ const path = require('path');
 class AdbDriver {
   constructor() {
     this.baseDir = process.cwd();
+
+    // [New] 커맨드라인 인자 파싱 (android=DEVICE_ID)
+    const args = process.argv.slice(2);
+    args.forEach(arg => {
+        if (arg.startsWith('android=')) {
+            process.env.ANDROID_SERIAL = arg.split('=')[1];
+            // this.log(`📱 Target Device set to: ${process.env.ANDROID_SERIAL}`);
+        }
+    });
     
     // 로그/에러 저장 경로 설정 (failures 폴더)
     const today = new Date().toISOString().split('T')[0];
@@ -17,6 +26,17 @@ class AdbDriver {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[1];
     this.logFile = path.join(this.sessionDir, `execution_${timestamp}.log`);
     
+    // [New] 화면 회전 강제 고정 (세로 모드)
+    try {
+        // 자동 회전 끄기
+        this.adb('shell settings put system accelerometer_rotation 0');
+        // 화면 방향: 0 (Portrait) 고정
+        this.adb('shell settings put system user_rotation 0');
+        // this.log('📱 Screen rotation locked to Portrait (0).');
+    } catch (e) {
+        this.log(`⚠️ Failed to lock screen rotation: ${e.message}`, 'WARN');
+    }
+
     this.log(`🚀 Driver initialized: ${new Date().toISOString()}`);
   }
 
